@@ -1,0 +1,1 @@
+# cs6474-trendsetters-app
