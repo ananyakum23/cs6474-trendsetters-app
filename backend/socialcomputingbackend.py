@@ -69,5 +69,13 @@ def forecast(cluster_id, metric):
     forecast_df = forecast_cluster(df_global, cluster_id, metric)
     return forecast_df.to_dict(orient="records")
 
+@app.route("/top-engagement", methods=["GET"])
+def top_engagement():
+    if df_global is None:
+        return jsonify([])
+
+    top_posts = df_global.nlargest(10, "engagement_score")[["title", "engagement_score"]]
+    return top_posts.to_dict(orient="records")
+
 if __name__ == "__main__":
     app.run(debug=True)
