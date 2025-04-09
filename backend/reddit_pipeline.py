@@ -102,6 +102,21 @@ def forecast_cluster(df, metric="engagement_score"):
         forecast = model.predict(future)
         print(f"\n=== Forecast for Cluster {cluster_id} ({metric}) ===")
         print(forecast[["ds", "yhat"]].tail())
+    
+def forecast_cluster_df(df, cluster_id, metric="engagement_score"):
+    cluster_df = df[df["cluster"] == cluster_id]
+    ts = cluster_df.groupby("timestamp")[metric].mean().reset_index()
+    ts.columns = ["ds", "y"]
+
+    if ts["y"].count() < 2:
+        return pd.DataFrame(columns=["ds", "yhat"])
+
+    model = Prophet()
+    model.fit(ts)
+    future = model.make_future_dataframe(periods=30)
+    forecast = model.predict(future)
+    return forecast[["ds", "yhat"]]
+
 
 
 # === MAIN PIPELINE ===
@@ -124,3 +139,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
