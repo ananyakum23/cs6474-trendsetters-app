@@ -1,60 +1,160 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Bar } from 'react-chartjs-2';
+import { Bar, Line } from 'react-chartjs-2';
 import {
   Chart,
   BarElement,
+  LineElement,
+  PointElement,
   CategoryScale,
   LinearScale,
   Tooltip,
   Legend
 } from 'chart.js';
 
-Chart.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
+Chart.register(
+  BarElement,
+  LineElement,
+  PointElement,
+  CategoryScale,
+  LinearScale,
+  Tooltip,
+  Legend
+);
 
 const App = () => {
-  const [posts, setPosts] = useState([]);
-  const [metric, setMetric] = useState("engagement_score");
+  const [topPosts, setTopPosts] = useState([]);
+  const [forecastData, setForecastData] = useState(null);
+  const [clusterId, setClusterId] = useState(0);
 
+  // Fetch top posts for bar chart
   useEffect(() => {
-    axios.get(`http://localhost:5000/top-posts?metric=${metric}&top_n=10`)
-      .then(res => setPosts(res.data))
-      .catch(err => console.error(err));
-  }, [metric]);
+    axios
+      .get('http://127.0.0.1:5000/top-engagement')
+      .then(res => {
+        console.log("✅ Top posts fetched:", res.data);
+        setTopPosts(res.data);
+      })
+      .catch(err => {
+        console.error("❌ Axios error:", err);
+      });
+  }, []);
 
-  const data = {
-    labels: posts.map(post =>
-      post.title.length > 50 ? post.title.slice(0, 47) + '...' : post.title
+  // Fetch forecast data for selected cluster
+  useEffect(() => {
+    axios
+      .get(`http://127.0.0.1:5000/forecast-multi/${clusterId}`)
+      .then(res => {
+        console.log("📈 Forecast data:", res.data);
+        setForecastData(res.data);
+      })
+      .catch(err => {
+        console.error("❌ Forecast error:", err);
+      });
+  }, [clusterId]);
+
+  const barData = {
+    labels: topPosts.map(post =>
+      post.title.length > 50 ? post.title.slice(0, 50) + '...' : post.title
     ),
     datasets: [
       {
-        label: metric.replace("_", " ").toUpperCase(),
-        data: posts.map(post => post[metric]),
+        label: 'Engagement Score',
+        data: topPosts.map(post => post.engagement_score),
         backgroundColor: 'rgba(54, 162, 235, 0.6)',
+        borderColor: 'rgba(54, 162, 235, 1)',
+        borderWidth: 1
       }
     ]
   };
 
-  const options = {
-    indexAxis: 'y',
+  const barOptions = {
     responsive: true,
     plugins: {
-      legend: { display: false },
+      legend: { display: true },
       tooltip: { enabled: true },
     },
+    indexAxis: 'y',
     scales: {
-      x: { beginAtZero: true },
+      x: {
+        beginAtZero: true,
+        title: { display: true, text: 'Engagement Score' }
+      },
+      y: {
+        title: { display: true, text: 'Post Title' }
+      }
+    }
+  };
+
+  const lineLabels = forecastData?.engagement_score?.map(item => item.ds) || [];
+
+  const lineData = {
+    labels: lineLabels,
+    datasets: [
+      {
+        label: 'Forecasted Engagement Score',
+        data: forecastData?.engagement_score?.map(item => item.yhat) || [],
+        borderColor: 'rgba(75, 192, 192, 1)',
+        backgroundColor: 'rgba(75, 192, 192, 0.4)',
+        tension: 0.3
+      },
+      {
+        label: 'Forecasted Growth Rate',
+        data: forecastData?.growth_rate?.map(item => item.yhat) || [],
+        borderColor: 'rgba(255, 99, 132, 1)',
+        backgroundColor: 'rgba(255, 99, 132, 0.4)',
+        tension: 0.3
+      },
+      {
+        label: 'Forecasted Sentiment',
+        data: forecastData?.sentiment?.map(item => item.yhat) || [],
+        borderColor: 'rgba(255, 206, 86, 1)',
+        backgroundColor: 'rgba(255, 206, 86, 0.4)',
+        tension: 0.3
+      }
+    ]
+  };
+
+  const lineOptions = {
+    responsive: true,
+    plugins: {
+      legend: { display: true },
+      tooltip: { enabled: true }
+    },
+    scales: {
+      x: {
+        title: { display: true, text: 'Date' }
+      },
+      y: {
+        beginAtZero: true,
+        title: { display: true, text: 'Metric Value' }
+      }
     }
   };
 
   return (
     <div style={{ padding: 40, fontFamily: 'sans-serif' }}>
-      <h1>Top Reddit Posts by {metric.replace("_", " ")}</h1>
-      <select value={metric} onChange={(e) => setMetric(e.target.value)} style={{ marginBottom: 20 }}>
-        <option value="engagement_score">Engagement Score</option>
-        <option value="growth_rate">Growth Rate</option>
-      </select>
-      <Bar data={data} options={options} />
+      <h1>Top 10 Reddit Posts by Engagement</h1>
+      <Bar data={barData} options={barOptions} />
+
+      <div style={{ marginTop: 60 }}>
+        <h2>📈 Forecasted Trends for Cluster {clusterId}</h2>
+
+        <label style={{ marginRight: 10 }}>Select Cluster:</label>
+        <select value={clusterId} onChange={e => setClusterId(Number(e.target.value))}>
+          {[0, 1, 2, 3, 4].map(id => (
+            <option key={id} value={id}>Cluster {id}</option>
+          ))}
+        </select>
+
+        {forecastData ? (
+          <div style={{ marginTop: 30 }}>
+            <Line data={lineData} options={lineOptions} />
+          </div>
+        ) : (
+          <p>⏳ Loading forecast...</p>
+        )}
+      </div>
     </div>
   );
 };
