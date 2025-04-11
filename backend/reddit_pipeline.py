@@ -7,7 +7,6 @@ from transformers import pipeline
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans
 from prophet import Prophet
-from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 import numpy as np
 from collections import Counter
