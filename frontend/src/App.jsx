@@ -104,6 +104,13 @@ const App = () => {
         borderColor: 'rgba(255, 99, 132, 1)',
         backgroundColor: 'rgba(255, 99, 132, 0.4)',
         tension: 0.3
+      },
+      {
+        label: 'Forecasted Sentiment',
+        data: forecastData?.sentiment?.map(item => item.yhat) || [],
+        borderColor: 'rgba(255, 206, 86, 1)',
+        backgroundColor: 'rgba(255, 206, 86, 0.4)',
+        tension: 0.3
       }
     ]
   };

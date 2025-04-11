@@ -51,7 +51,7 @@ def forecast_multi(cluster_id):
     cluster_df = df_global[df_global["cluster"] == cluster_id]
     result = {}
 
-    for metric in ["engagement_score", "growth_rate"]:
+    for metric in ["engagement_score", "growth_rate", "sentiment"]:
         ts = cluster_df.groupby("timestamp")[metric].mean().reset_index()
         ts.columns = ["ds", "y"]
 

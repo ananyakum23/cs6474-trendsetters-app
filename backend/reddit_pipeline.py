@@ -15,11 +15,6 @@ N_CLUSTERS = 5
 
 # === SCRAPE REDDIT ===
 def get_reddit_instance():
-    # return praw.Reddit(
-    #     client_id='196hMzPxqPwzho640Qrtiw',
-    #     client_secret='Xbi4ZWFOjzfw3V1AoJetG169VGAMOQ',
-    #     user_agent = 'script:Trendsetters:1.0 (by u/Aggravating-Steak128)'
-    # )
     return praw.Reddit(
         client_id='YVJ32KpFG4ZNiQmG66hY8w',
         client_secret='46IGTKQKTi1aiZ_Dx4Ak98tTrM5L8g',
