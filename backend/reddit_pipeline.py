@@ -79,6 +79,7 @@ def name_clusters(df, tfidf_vectorizer, kmeans_model, top_n=3):
         combined = list(dict.fromkeys(top_tfidf_terms + common_words))
         cluster_names[i] = " / ".join(word.title() for word in combined[:top_n])
 
+
     return cluster_names
 
 # === TOPIC CLUSTERING ===

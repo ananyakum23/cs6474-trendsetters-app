@@ -92,5 +92,14 @@ def top_engagement():
     top_posts = df_global.nlargest(10, "engagement_score")[["title", "engagement_score"]]
     return top_posts.to_dict(orient="records")
 
+@app.route("/wordcloud", methods=["GET"])
+def get_wordcloud():
+    global DATAFRAME
+    if DATAFRAME is None:
+        return jsonify({"error": "Data not loaded"}), 400
+
+    img_io = generate_wordcloud_image(DATAFRAME)
+    return send_file(img_io, mimetype='image/png')
+
 if __name__ == "__main__":
     app.run(debug=True)
