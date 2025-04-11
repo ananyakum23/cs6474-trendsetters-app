@@ -7,6 +7,7 @@ from transformers import pipeline
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans
 from prophet import Prophet
+import numpy as np
 
 # === CONFIG ===
 SUBREDDITS = ["technology"]
@@ -25,7 +26,9 @@ def scrape_subreddits(subreddits, limit):
     reddit = get_reddit_instance()
     data = []
     for sub in subreddits:
-        for post in reddit.subreddit(sub).hot(limit=limit):
+        # for post in reddit.subreddit(sub).search(query="*", sort="new", time_filter="month", limit=limit):
+        for post in reddit.subreddit(sub).search(query="*", sort="new", time_filter="month", limit=limit):
+
             data.append({
                 "id": post.id,
                 "title": post.title,
@@ -52,8 +55,8 @@ def get_sentiment(text):
 def compute_features(df):
     df["timestamp"] = pd.to_datetime(df["created_utc"])
     df["hours_since_posted"] = (datetime.utcnow() - df["timestamp"]).dt.total_seconds() / 3600
-    df["growth_rate"] = df["upvotes"] / df["hours_since_posted"].replace(0, 1)
     df["engagement_score"] = df["upvotes"] + (0.75 * df["comments"]) + (10 * df["awards"])
+    # df["engagement_score"] += np.random.normal(0, 0.5, size=len(df))
     df["sentiment"] = df["title"].apply(get_sentiment)
     return df
 

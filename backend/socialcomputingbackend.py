@@ -2,6 +2,7 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from reddit_pipeline import scrape_subreddits, compute_features, cluster_topics
 from prophet import Prophet
+import numpy as np
 
 app = Flask(__name__)
 CORS(app)
@@ -44,29 +45,129 @@ def forecast(cluster_id, metric):
     return forecast[["ds", "yhat"]].to_dict(orient="records")
 
 @app.route("/forecast-multi/<int:cluster_id>", methods=["GET"])
+# def forecast_multi(cluster_id):
+#     if df_global is None:
+#         return jsonify({})
+
+#     cluster_df = df_global[df_global["cluster"] == cluster_id]
+#     result = {}
+
+#     for metric in ["engagement_score", "growth_rate", "sentiment"]:
+#         # ts = cluster_df.groupby("timestamp")[metric].mean().reset_index()
+#         # ts.columns = ["ds", "y"]
+
+#         if metric == "sentiment":
+#             cluster_df["ds"] = cluster_df["timestamp"].dt.floor("D")
+#             ts_raw = cluster_df[["ds", "sentiment"]].copy()
+#             ts = ts_raw.groupby("ds")["sentiment"].sum().rolling(window=2, min_periods=1).sum().reset_index()
+#             ts["sentiment_scaled"] = (ts["sentiment"] - ts["sentiment"].mean()) * 100
+#             ts = ts[["ds", "sentiment_scaled"]].rename(columns={"sentiment_scaled": "y"})
+#         else:
+#             ts = cluster_df.groupby("timestamp")[metric].mean().reset_index()
+#             ts.columns = ["ds", "y"]
+
+
+#         if ts["y"].count() < 2:
+#             result[metric] = []
+#             continue
+
+#         model = Prophet()
+#         model.fit(ts)
+#         future = model.make_future_dataframe(periods=30)
+#         forecast = model.predict(future)
+#         forecast["ds"] = forecast["ds"].astype(str)
+#         result[metric] = forecast[["ds", "yhat"]].to_dict(orient="records")
+
+#     return jsonify(result)
+
+# def forecast_multi(cluster_id):
+#     if df_global is None:
+#         return jsonify({})
+
+#     cluster_df = df_global[df_global["cluster"] == cluster_id].copy()
+#     result = {}
+
+#     for metric in ["engagement_score", "growth_rate", "sentiment"]:
+#         if metric == "sentiment":
+#             cluster_df["ds"] = cluster_df["timestamp"].dt.floor("D")
+#             ts_raw = cluster_df[["ds", "sentiment"]].copy()
+    
+#             ts_grouped = ts_raw.groupby("ds")["sentiment"].sum().reset_index()
+#             ts_grouped["sentiment_scaled"] = (ts_grouped["sentiment"] - ts_grouped["sentiment"].mean()) * 100
+#             ts = ts_grouped[["ds", "sentiment_scaled"]].rename(columns={"sentiment_scaled": "y"})
+
+            
+#         else:
+ 
+#             cluster_df["ds"] = cluster_df["timestamp"].dt.floor("D")
+#             ts = cluster_df.groupby("ds")[metric].mean().reset_index()
+#             ts.columns = ["ds", "y"]
+
+
+#         if ts["y"].count() < 2:
+#             result[metric] = []
+#             continue
+
+#         model = Prophet()
+#         model.fit(ts)
+
+#         # Generate a consistent future range for all metrics
+#         start_date = ts["ds"].min()
+#         end_date = ts["ds"].max()
+#         model = Prophet()
+#         model.fit(ts)
+
+#         # Ensure future extends 30 days beyond latest real observation
+#         future = model.make_future_dataframe(periods=30)
+#         forecast = model.predict(future)
+
+#         # Filter only future dates to match range
+#         forecast["ds"] = forecast["ds"].astype(str)
+#         result[metric] = forecast[["ds", "yhat"]].to_dict(orient="records")
+
+
+#     return jsonify(result)
+
+#sentiment changes and is not a flat line in below forecast multi function
 def forecast_multi(cluster_id):
     if df_global is None:
         return jsonify({})
 
-    cluster_df = df_global[df_global["cluster"] == cluster_id]
+    cluster_df = df_global[df_global["cluster"] == cluster_id].copy()
     result = {}
 
-    for metric in ["engagement_score", "growth_rate", "sentiment"]:
-        ts = cluster_df.groupby("timestamp")[metric].mean().reset_index()
-        ts.columns = ["ds", "y"]
+    cluster_df["ds"] = cluster_df["timestamp"].dt.floor("D")
+
+    for metric in ["engagement_score", "sentiment"]:
+        if metric == "sentiment":
+            ts_raw = cluster_df[["ds", "sentiment"]].copy()
+            ts = ts_raw.groupby("ds")["sentiment"].sum().rolling(window=2, min_periods=1).sum().reset_index()
+            ts["sentiment_scaled"] = (ts["sentiment"] - ts["sentiment"].mean()) * 100
+            ts = ts[["ds", "sentiment_scaled"]].rename(columns={"sentiment_scaled": "y"})
+
+        else:
+            ts = cluster_df.groupby("ds")[metric].mean().reset_index()
+            ts.columns = ["ds", "y"]
+
+        # Clean and validate
+        ts.replace([np.inf, -np.inf], np.nan, inplace=True)
+        ts.dropna(inplace=True)
 
         if ts["y"].count() < 2:
             result[metric] = []
             continue
 
-        model = Prophet()
+        model = Prophet(daily_seasonality=True, weekly_seasonality=True)
         model.fit(ts)
         future = model.make_future_dataframe(periods=30)
         forecast = model.predict(future)
+
         forecast["ds"] = forecast["ds"].astype(str)
         result[metric] = forecast[["ds", "yhat"]].to_dict(orient="records")
 
     return jsonify(result)
+
+
 
 @app.route("/top-engagement", methods=["GET"])
 def top_engagement():
