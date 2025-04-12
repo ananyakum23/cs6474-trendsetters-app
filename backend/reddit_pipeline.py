@@ -13,7 +13,7 @@ from collections import Counter
 import re
 
 # === CONFIG ===
-SUBREDDITS = ["technology"]
+SUBREDDITS = ["technology", "news", "politics"]
 LIMIT = 300
 N_CLUSTERS = 5
 
@@ -78,7 +78,6 @@ def name_clusters(df, tfidf_vectorizer, kmeans_model, top_n=3):
         combined = list(dict.fromkeys(top_tfidf_terms + common_words))
         cluster_names[i] = " / ".join(word.title() for word in combined[:top_n])
 
-
     return cluster_names
 
 # === TOPIC CLUSTERING ===
@@ -93,83 +92,20 @@ def cluster_topics(df, n_clusters):
 
     return df
 
-# === FORECASTING FUNCTION ===
-def forecast_cluster(df):
-    cluster_ids = df["cluster"].unique()
-    metrics = ["engagement_score", "growth_rate", "sentiment"]
-
-    for cluster_id in cluster_ids:
-        print(f"\n🔮 Forecasting Cluster {cluster_id}")
-        cluster_df = df[df["cluster"] == cluster_id].copy()
-        cluster_df["ds"] = cluster_df["timestamp"].dt.floor("D")
-
-        if cluster_df["ds"].nunique() < 5:
-            print(f"⚠️ Cluster {cluster_id} skipped due to insufficient time diversity.")
-            continue
-
-        forecasts = {}
-        for metric in metrics:
-            if metric == "growth_rate":
-                daily_engagement = cluster_df.groupby("ds")["engagement_score"].mean()
-                ts = daily_engagement.pct_change().reset_index()
-                ts.columns = ["ds", "y"]
-            elif metric == "sentiment":
-                ts_raw = cluster_df[["ds", "sentiment"]].copy()
-                ts = ts_raw.groupby("ds")["sentiment"].sum().rolling(window=2, min_periods=1).sum().reset_index()
-                ts["sentiment_scaled"] = (ts["sentiment"] - ts["sentiment"].mean()) * 100
-                ts = ts[["ds", "sentiment_scaled"]].rename(columns={"sentiment_scaled": "y"})
-            else:
-                ts = cluster_df.groupby("ds")[metric].mean().reset_index()
-                ts.columns = ["ds", "y"]
-
-            ts.replace([np.inf, -np.inf], np.nan, inplace=True)
-            ts.dropna(inplace=True)
-
-            if ts["y"].count() < 2:
-                print(f"⚠️ Skipping {metric} — not enough valid points.")
-                continue
-
-            plt.figure()
-            plt.plot(ts["ds"], ts["y"], marker="o")
-            plt.title(f"🔍 Raw {metric} for Cluster {cluster_id}")
-            plt.xticks(rotation=45)
-            plt.tight_layout()
-            plt.show()
-
-            model = Prophet(daily_seasonality=True, weekly_seasonality=True)
-            model.fit(ts)
-            future = model.make_future_dataframe(periods=30)
-            forecast = model.predict(future)
-            forecasts[metric] = forecast[["ds", "yhat"]]
-
-        if forecasts:
-            plt.figure(figsize=(12, 6))
-            for metric, forecast in forecasts.items():
-                plt.plot(forecast["ds"], forecast["yhat"], label=metric)
-            plt.title(f"📈 Cluster {cluster_id} Forecasts")
-            plt.xlabel("Date")
-            plt.ylabel("Forecasted Value")
-            plt.legend()
-            plt.tight_layout()
-            plt.show()
-
 # === MAIN ===
 def main():
-    print("🚀 Scraping Reddit...")
-    df = scrape_subreddits(SUBREDDITS, LIMIT)
+    all_dfs = []
+    for sub in SUBREDDITS:
+        print(f"\n🚀 Scraping r/{sub}...")
+        df = scrape_subreddits([sub], LIMIT)
+        df = compute_features(df)
+        df = cluster_topics(df, N_CLUSTERS)
+        df["subreddit"] = sub
+        all_dfs.append(df)
 
-    print("🔍 Computing Features...")
-    df = compute_features(df)
-
-    print("🧠 Clustering Topics and Naming Clusters...")
-    df = cluster_topics(df, N_CLUSTERS)
-
-    df.to_csv("final_dataset.csv", index=False)
+    df_full = pd.concat(all_dfs, ignore_index=True)
+    df_full.to_csv("final_dataset.csv", index=False)
     print("✅ Data saved to final_dataset.csv")
-
-    print("📈 Running Forecasts + Visualizations...")
-    forecast_cluster(df)
-
 
 if __name__ == "__main__":
     main()
