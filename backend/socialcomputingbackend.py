@@ -248,5 +248,35 @@ def trend_lifetimes():
     )
     return results.to_dict(orient="records")
 
+@app.route("/topic-popularity", methods=["GET"])
+def topic_popularity():
+    subreddit = request.args.get("subreddit")
+    if df_global is None or subreddit is None:
+        return jsonify({})
+
+    filtered = df_global[df_global["subreddit"] == subreddit].copy()
+
+    # 🗓 Filter to only the past 7 days
+    one_week_ago = datetime.utcnow() - timedelta(days=7)
+    filtered = filtered[filtered["timestamp"] >= one_week_ago]
+
+    filtered["ds"] = filtered["timestamp"].dt.floor("D")
+
+    popularity = (
+        filtered.groupby(["cluster", "ds"]).size().reset_index(name="count")
+    )
+
+    cluster_names = filtered.groupby("cluster")["cluster_name"].first().to_dict()
+
+    result = {}
+    for cluster_id, group in popularity.groupby("cluster"):
+        result[str(cluster_id)] = {
+            "name": cluster_names.get(cluster_id, f"Cluster {cluster_id}"),
+            "data": group[["ds", "count"]].to_dict(orient="records")
+        }
+
+    return jsonify(result)
+
+
 if __name__ == "__main__":
     app.run(debug=True)

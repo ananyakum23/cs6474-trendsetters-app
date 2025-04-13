@@ -26,3 +26,9 @@ export const fetchTrendLifetimes = (subreddit) =>
     axios.get(`${BASE_URL}/trend-lifetimes`, {
       params: { subreddit },
     });
+
+export const fetchTopicPopularity = (subreddit) =>
+    axios.get(`${BASE_URL}/topic-popularity`, {
+        params: { subreddit },
+    });
+      

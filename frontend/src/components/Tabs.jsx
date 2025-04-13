@@ -42,7 +42,20 @@ const Tabs = ({ activeTab, setActiveTab }) => (
     >
         ⏳ Past Trend Lifetimes
     </button>
-
+    
+    <button
+        onClick={() => setActiveTab("popularity")}
+        style={{
+            marginRight: 10,
+            padding: "8px 16px",
+            background: activeTab === "popularity" ? "#007bff" : "#444",
+            color: "white",
+            border: "none",
+            borderRadius: 5
+        }}
+        >
+        📊 Past Topic Popularity
+    </button>
   </div>
 );
 

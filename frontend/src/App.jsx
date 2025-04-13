@@ -3,11 +3,14 @@ import Tabs from './components/Tabs';
 import TopPostsChart from './components/TopPostsChart';
 import ForecastChart from './components/ForecastChart';
 import TrendLifetimeHistogram from './components/TrendLifetimeHistogram';
+import TopicPopularityChart from './components/TopicPopularityChart'; // ⬅️ new
+
 import {
   fetchTopPosts,
   fetchClusterNames,
   fetchForecastForCluster,
-  fetchTrendLifetimes
+  fetchTrendLifetimes,
+  fetchTopicPopularity // ⬅️ new
 } from './services/api';
 
 const App = () => {
@@ -17,13 +20,15 @@ const App = () => {
   const [clusterId, setClusterId] = useState(0);
   const [clusterNames, setClusterNames] = useState({});
   const [lifetimeData, setLifetimeData] = useState([]);
+  const [popularityData, setPopularityData] = useState({}); // ⬅️ new
   const [activeTab, setActiveTab] = useState("forecast");
 
-  // Fetch top posts, cluster names, lifetimes on subreddit change
+  // Fetch top posts, cluster names, lifetimes, and popularity on subreddit change
   useEffect(() => {
     fetchTopPosts(selectedSubreddit).then(res => setTopPosts(res.data));
     fetchClusterNames(selectedSubreddit).then(res => setClusterNames(res.data));
     fetchTrendLifetimes(selectedSubreddit).then(res => setLifetimeData(res.data));
+    fetchTopicPopularity(selectedSubreddit).then(res => setPopularityData(res.data)); // ⬅️ new
     setClusterId(0);
   }, [selectedSubreddit]);
 
@@ -105,6 +110,18 @@ const App = () => {
             <p>⏳ Loading lifetime data...</p>
           ) : (
             <TrendLifetimeHistogram data={lifetimeData} />
+          )}
+        </div>
+      )}
+
+      {/* TOPIC POPULARITY TAB */}
+      {activeTab === "popularity" && (
+        <div style={{ marginTop: 30 }}>
+          <h2>📊 Topic Popularity Over Time (Cluster Post Volume)</h2>
+          {Object.keys(popularityData).length === 0 ? (
+            <p>⏳ Loading popularity data...</p>
+          ) : (
+            <TopicPopularityChart data={popularityData} />
           )}
         </div>
       )}
