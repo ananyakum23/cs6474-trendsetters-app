@@ -5,6 +5,7 @@ from reddit_pipeline import scrape_subreddits, compute_features, cluster_topics
 from prophet import Prophet
 import pandas as pd
 import numpy as np
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 CORS(app)
@@ -220,6 +221,32 @@ def top_engagement():
     filtered = df_global[df_global["subreddit"] == subreddit]
     top_posts = filtered.nlargest(10, "engagement_score")[["title", "engagement_score"]]
     return top_posts.to_dict(orient="records")
+
+@app.route("/trend-lifetimes", methods=["GET"])
+def trend_lifetimes():
+    subreddit = request.args.get("subreddit")
+    if df_global is None or subreddit is None:
+        return jsonify([])
+
+    filtered = df_global[df_global["subreddit"] == subreddit].copy()
+
+    # 🔐 Filter to posts from the last 30 days
+    one_month_ago = datetime.utcnow() - timedelta(days=30)
+    filtered = filtered[filtered["timestamp"] >= one_month_ago]
+
+    filtered["lifetime_hours"] = filtered["hours_since_posted"]
+
+    results = (
+        filtered.groupby("cluster")["lifetime_hours"]
+        .apply(list)
+        .reset_index()
+        .rename(columns={"lifetime_hours": "lifetimes"})
+    )
+
+    results["cluster_name"] = results["cluster"].map(
+        filtered.groupby("cluster")["cluster_name"].first().to_dict()
+    )
+    return results.to_dict(orient="records")
 
 if __name__ == "__main__":
     app.run(debug=True)

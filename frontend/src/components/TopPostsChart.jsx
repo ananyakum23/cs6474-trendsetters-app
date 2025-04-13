@@ -48,7 +48,22 @@ const TopPostsChart = ({ posts }) => {
     }
   };
 
-  return <Chart ref={chartRef} type="bar" data={data} options={options} />;
+  return (
+    <div style={{ width: '100%', height: '500px' }}>
+      <Chart
+        ref={chartRef}
+        type="bar"
+        data={data}
+        options={{
+          ...options,
+          maintainAspectRatio: false
+        }}
+        height={500}
+        width={900}
+      />
+    </div>
+  );
+  
 };
 
 export default TopPostsChart;

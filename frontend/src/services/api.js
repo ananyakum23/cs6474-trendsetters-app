@@ -18,5 +18,11 @@ export const fetchClusterNames = (subreddit) =>
   axios.get(`${BASE_URL}/cluster-names`, {
     params: { subreddit },
   });
+
 export const fetchForecastForCluster = (clusterId, subreddit) =>
   axios.get(`${BASE_URL}/forecast-multi/${subreddit}/${clusterId}`);
+
+export const fetchTrendLifetimes = (subreddit) =>
+    axios.get(`${BASE_URL}/trend-lifetimes`, {
+      params: { subreddit },
+    });

@@ -26,8 +26,23 @@ const Tabs = ({ activeTab, setActiveTab }) => (
         borderRadius: 5
       }}
     >
-      🔝 Top Posts
+      🔝 Top Current Posts
     </button>
+
+    <button
+        onClick={() => setActiveTab("lifetime")}
+        style={{
+            marginRight: 10,
+            padding: "8px 16px",
+            background: activeTab === "lifetime" ? "#007bff" : "#444",
+            color: "white",
+            border: "none",
+            borderRadius: 5
+        }}
+    >
+        ⏳ Past Trend Lifetimes
+    </button>
+
   </div>
 );
 

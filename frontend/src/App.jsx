@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import Tabs from './components/Tabs';
 import TopPostsChart from './components/TopPostsChart';
 import ForecastChart from './components/ForecastChart';
+import TrendLifetimeHistogram from './components/TrendLifetimeHistogram';
 import {
   fetchTopPosts,
   fetchClusterNames,
-  fetchForecastForCluster
+  fetchForecastForCluster,
+  fetchTrendLifetimes
 } from './services/api';
 
 const App = () => {
@@ -14,23 +16,23 @@ const App = () => {
   const [forecastData, setForecastData] = useState(null);
   const [clusterId, setClusterId] = useState(0);
   const [clusterNames, setClusterNames] = useState({});
+  const [lifetimeData, setLifetimeData] = useState([]);
   const [activeTab, setActiveTab] = useState("forecast");
 
-  // Fetch top posts and cluster names when subreddit changes
+  // Fetch top posts, cluster names, lifetimes on subreddit change
   useEffect(() => {
     fetchTopPosts(selectedSubreddit).then(res => setTopPosts(res.data));
     fetchClusterNames(selectedSubreddit).then(res => setClusterNames(res.data));
-    setClusterId(0); // reset cluster when subreddit changes
+    fetchTrendLifetimes(selectedSubreddit).then(res => setLifetimeData(res.data));
+    setClusterId(0);
   }, [selectedSubreddit]);
 
   // Fetch forecast data when cluster or subreddit changes
-  
   useEffect(() => {
     fetchForecastForCluster(clusterId, selectedSubreddit).then(res =>
       setForecastData(res.data)
     );
   }, [clusterId, selectedSubreddit]);
-  
 
   return (
     <div style={{ padding: 40, fontFamily: 'sans-serif', maxWidth: 1200, margin: '0 auto' }}>
@@ -46,7 +48,6 @@ const App = () => {
           <option value="technology">Technology</option>
           <option value="news">News</option>
           <option value="politics">Politics</option>
-          {/* Add more options here if needed */}
         </select>
       </div>
 
@@ -92,6 +93,18 @@ const App = () => {
             </div>
           ) : (
             <p>⏳ Loading forecast...</p>
+          )}
+        </div>
+      )}
+
+      {/* LIFETIME HISTOGRAM TAB */}
+      {activeTab === "lifetime" && (
+        <div style={{ marginTop: 30 }}>
+          <h2>⏳ Trend Lifetimes (Avg Hours Active Per Cluster in the Last Month)</h2>
+          {lifetimeData.length === 0 ? (
+            <p>⏳ Loading lifetime data...</p>
+          ) : (
+            <TrendLifetimeHistogram data={lifetimeData} />
           )}
         </div>
       )}
